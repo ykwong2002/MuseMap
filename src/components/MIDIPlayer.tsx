@@ -1,12 +1,15 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { Box, IconButton, Slider, Typography, FormControl, InputLabel, Select, MenuItem, Stack, Switch, FormControlLabel } from '@mui/material';
+import React, { useState, useCallback } from 'react';
+import { Box, IconButton, Slider, Typography, FormControl, InputLabel, Select, MenuItem, Stack, Switch, FormControlLabel, FormGroup, SelectChangeEvent } from '@mui/material';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
 import StopIcon from '@mui/icons-material/Stop';
 import LoopIcon from '@mui/icons-material/Loop';
+import VolumeUpIcon from '@mui/icons-material/VolumeUp';
 import * as Tone from 'tone';
 import { Midi } from '@tonejs/midi';
 import { formatDuration } from '../utils/midiUtils';
+import { useSynth } from '../hooks/useSynth';
+import { EffectType, SynthType } from '../hooks/useSynth';
 
 interface MIDIPlayerProps {
     midiData: string;
@@ -20,27 +23,31 @@ export const MIDIPlayer: React.FC<MIDIPlayerProps> = ({ midiData, tempo, onQuant
     const [isPlaying, setIsPlaying] = useState(false);
     const [progress, setProgress] = useState(0);
     const [duration, setDuration] = useState(0);
-    const [synth, setSynth] = useState<Tone.PolySynth | null>(null);
     const [loop, setLoop] = useState(false);
     const [quantizeValue, setQuantizeValue] = useState<QuantizeValue>(0.25);
     const [swing, setSwing] = useState(false);
 
-    useEffect(() => {
-        const newSynth = new Tone.PolySynth(Tone.Synth, {
-            envelope: {
-                attack: 0.02,
-                decay: 0.1,
-                sustain: 0.3,
-                release: 1
-            }
-        }).toDestination();
+    const { synth, settings, updateSettings } = useSynth({
+        type: 'basic',
+        effects: [],
+        volume: 0
+    });
 
-        setSynth(newSynth);
+    const handleSynthTypeChange = (event: SelectChangeEvent<SynthType>) => {
+        updateSettings({ type: event.target.value as SynthType });
+    };
 
-        return () => {
-            newSynth.dispose();
-        };
-    }, []);
+    const handleEffectToggle = (effect: EffectType) => {
+        updateSettings({
+            effects: settings.effects.includes(effect)
+                ? settings.effects.filter(e => e !== effect)
+                : [...settings.effects, effect]
+        });
+    };
+
+    const handleVolumeChange = (_: Event, value: number | number[]) => {
+        updateSettings({ volume: value as number });
+    };
 
     const resetPlayback = useCallback(() => {
         Tone.Transport.stop();
@@ -55,25 +62,18 @@ export const MIDIPlayer: React.FC<MIDIPlayerProps> = ({ midiData, tempo, onQuant
             const midiArrayBuffer = Uint8Array.from(atob(midiData), c => c.charCodeAt(0)).buffer;
             const midi = new Midi(midiArrayBuffer);
 
-            // Set tempo
             Tone.Transport.bpm.value = tempo;
-
-            // Clear any existing events
             Tone.Transport.cancel();
 
-            // Schedule notes with quantization
             midi.tracks.forEach(track => {
                 track.notes.forEach(note => {
                     const time = Tone.Time(note.time).toSeconds();
-                    const duration = note.duration;
-                    const velocity = note.velocity;
-
                     Tone.Transport.schedule(time => {
                         synth.triggerAttackRelease(
                             note.name,
-                            duration,
+                            note.duration,
                             time,
-                            velocity
+                            note.velocity
                         );
                     }, time);
                 });
@@ -90,7 +90,6 @@ export const MIDIPlayer: React.FC<MIDIPlayerProps> = ({ midiData, tempo, onQuant
             await Tone.start();
             Tone.Transport.start();
 
-            // Update progress
             const intervalId = setInterval(() => {
                 setProgress(Tone.Transport.seconds);
                 if (Tone.Transport.seconds >= midi.duration && !loop) {
@@ -121,7 +120,7 @@ export const MIDIPlayer: React.FC<MIDIPlayerProps> = ({ midiData, tempo, onQuant
         setProgress(time);
     };
 
-    const handleQuantizeChange = (event: any) => {
+    const handleQuantizeChange = (event: SelectChangeEvent<QuantizeValue>) => {
         const value = event.target.value as QuantizeValue;
         setQuantizeValue(value);
         onQuantizeChange?.(value);
@@ -188,6 +187,64 @@ export const MIDIPlayer: React.FC<MIDIPlayerProps> = ({ midiData, tempo, onQuant
                         label="Swing"
                     />
                 </Box>
+
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <FormControl size="small" sx={{ minWidth: 120 }}>
+                        <InputLabel>Synth Type</InputLabel>
+                        <Select
+                            value={settings.type}
+                            label="Synth Type"
+                            onChange={handleSynthTypeChange}
+                        >
+                            <MenuItem value="basic">Basic</MenuItem>
+                            <MenuItem value="fm">FM</MenuItem>
+                            <MenuItem value="am">AM</MenuItem>
+                            <MenuItem value="mono">Mono</MenuItem>
+                        </Select>
+                    </FormControl>
+                    
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <VolumeUpIcon />
+                        <Slider
+                            value={settings.volume}
+                            min={-60}
+                            max={0}
+                            onChange={handleVolumeChange}
+                            aria-label="Volume"
+                            sx={{ width: 100 }}
+                        />
+                    </Box>
+                </Box>
+
+                <FormGroup row>
+                    <FormControlLabel
+                        control={
+                            <Switch
+                                checked={settings.effects.includes('reverb')}
+                                onChange={() => handleEffectToggle('reverb')}
+                            />
+                        }
+                        label="Reverb"
+                    />
+                    <FormControlLabel
+                        control={
+                            <Switch
+                                checked={settings.effects.includes('delay')}
+                                onChange={() => handleEffectToggle('delay')}
+                            />
+                        }
+                        label="Delay"
+                    />
+                    <FormControlLabel
+                        control={
+                            <Switch
+                                checked={settings.effects.includes('distortion')}
+                                onChange={() => handleEffectToggle('distortion')}
+                            />
+                        }
+                        label="Distortion"
+                    />
+                </FormGroup>
             </Stack>
         </Box>
     );
