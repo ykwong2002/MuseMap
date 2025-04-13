@@ -1,9 +1,6 @@
-import OpenAI from 'openai';
-import { APIError } from 'openai/error';
 import { MusicalIdea, GeneratedMusic } from '../types/music';
 import { neo4jService } from './neo4jService';
 import { createMIDIFile } from '../utils/midiUtils';
-import { config } from '../config/env';
 
 interface ServiceError {
     status?: number;
@@ -11,27 +8,20 @@ interface ServiceError {
 }
 
 class OpenAiService {
-    private openai: OpenAI;
+    private apiBaseUrl: string;
     private maxRetries = 3;
     private retryDelay = 1000; // 1 second
 
     constructor() {
-        const apiKey = config.openai.apiKey;
-        if (!apiKey) {
-            throw new Error('OpenAI API key is required');
-        }
-
-        this.openai = new OpenAI({
-            apiKey,
-            maxRetries: this.maxRetries,
-        });
+        // Use environment variable or default to localhost in development
+        this.apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
     }
 
     private async retry<T>(fn: () => Promise<T>, retries = this.maxRetries): Promise<T> {
         try {
             return await fn();
         } catch (error) {
-            if (retries > 0 && this.isRetryableError(error as ServiceError | APIError)) {
+            if (retries > 0 && this.isRetryableError(error as ServiceError)) {
                 await new Promise(resolve => setTimeout(resolve, this.retryDelay));
                 return this.retry(fn, retries - 1);
             }
@@ -39,11 +29,7 @@ class OpenAiService {
         }
     }
 
-    private isRetryableError(error: ServiceError | APIError): boolean {
-        if (error instanceof APIError) {
-            return error.status === 429 || (error.status ?? 0) >= 500;
-        }
-        // Ensure we have definite boolean values for each condition
+    private isRetryableError(error: ServiceError): boolean {
         const isRateLimit = error?.status === 429;
         const isServerError = (error?.status ?? 0) >= 500;
         const isTimeout = Boolean(error?.message?.includes('timeout'));
@@ -91,59 +77,33 @@ class OpenAiService {
     async generateMusic(musicalIdea: MusicalIdea): Promise<GeneratedMusic> {
         const context = await this.generateMusicalContext(musicalIdea);
         
-        const completion = await this.retry(async () => {
+        const response = await this.retry(async () => {
             try {
-                return await this.openai.chat.completions.create({
-                    model: "gpt-4",
-                    messages: [
-                        {
-                            role: "system",
-                            content: `You are a music composition assistant that generates MIDI-compatible musical sequences. 
-                            Your output should be in the format:
-                            {
-                                "notes": [
-                                    { "pitch": "C4", "time": 0, "duration": 0.5, "velocity": 0.8 },
-                                    ...
-                                ],
-                                "key": "C",
-                                "timeSignature": "4/4"
-                            }
-                            
-                            Follow these rules:
-                            - Use standard note names (C4, F#3, etc.)
-                            - Time should be in seconds from the start
-                            - Duration should be in seconds
-                            - Velocity should be between 0 and 1
-                            - Generate at least 8 bars of music
-                            - Ensure all notes are valid MIDI notes`
-                        },
-                        {
-                            role: "user",
-                            content: `Generate a musical piece with the following context and requirements:
-
-                            Musical Context:
-                            ${context}
-
-                            Requirements:
-                            - Genre: ${musicalIdea.genre || 'Any'}
-                            - Mood: ${musicalIdea.mood?.join(', ') || 'Any'}
-                            - Tempo: ${musicalIdea.tempo || 'Appropriate for genre'} BPM
-                            - Complexity Level: ${musicalIdea.complexity || 5}/10
-
-                            Consider the musical theory context provided and ensure the composition follows appropriate patterns for the genre and mood.`
-                        }
-                    ],
-                    response_format: { type: "json_object" }
+                const result = await fetch(`${this.apiBaseUrl}/api/generate-music`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        context,
+                        musicalIdea
+                    })
                 });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                return data;
             } catch (error) {
-                console.error('Error in OpenAI API call:', error);
+                console.error('Error in API call:', error);
                 throw error;
             }
         });
 
         try {
-            const generatedSequence = JSON.parse(completion.choices[0].message.content!);
-            const midi = createMIDIFile(generatedSequence.notes, musicalIdea.tempo || 120);
+            const midi = createMIDIFile(response.notes, musicalIdea.tempo || 120);
 
             return {
                 midi,
@@ -151,12 +111,12 @@ class OpenAiService {
                     genre: musicalIdea.genre || "unspecified",
                     mood: musicalIdea.mood || ["neutral"],
                     tempo: musicalIdea.tempo || 120,
-                    key: generatedSequence.key,
-                    timeSignature: generatedSequence.timeSignature
+                    key: response.key,
+                    timeSignature: response.timeSignature
                 }
             };
         } catch (error) {
-            console.error('Error processing OpenAI response:', error);
+            console.error('Error processing API response:', error);
             throw new Error('Failed to generate valid musical sequence');
         }
     }
