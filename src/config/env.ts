@@ -1,0 +1,16 @@
+import * as dotenv from 'dotenv';
+import { resolve } from 'path';
+
+// Load environment variables from .env file
+dotenv.config({ path: resolve(process.cwd(), '.env') });
+
+export const config = {
+    neo4j: {
+        uri: process.env.VITE_NEO4J_URI || process.env.NEO4J_URI || 'bolt://localhost:7687',
+        user: process.env.VITE_NEO4J_USER || process.env.NEO4J_USER || 'neo4j',
+        password: process.env.VITE_NEO4J_PASSWORD || process.env.NEO4J_PASSWORD || 'password'
+    },
+    openai: {
+        apiKey: process.env.VITE_OPENAI_API_KEY || process.env.OPENAI_API_KEY
+    }
+};

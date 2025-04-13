@@ -1,7 +1,9 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material';
+import { SnackbarProvider } from 'notistack';
 import CssBaseline from '@mui/material/CssBaseline';
 import { CompositionPage } from './pages/CompositionPage';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 const theme = createTheme({
   palette: {
@@ -17,14 +19,21 @@ const theme = createTheme({
 
 function App() {
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <Router>
-        <Routes>
-          <Route path="/" element={<CompositionPage />} />
-        </Routes>
-      </Router>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider theme={theme}>
+        <SnackbarProvider 
+          maxSnack={3} 
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        >
+          <CssBaseline />
+          <Router>
+            <Routes>
+              <Route path="/" element={<CompositionPage />} />
+            </Routes>
+          </Router>
+        </SnackbarProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 

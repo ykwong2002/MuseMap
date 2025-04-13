@@ -1,61 +1,87 @@
 import React, { useState } from 'react';
-import { Container, Paper, Typography, Box, CircularProgress } from '@mui/material';
+import { Paper, Typography, Box } from '@mui/material';
+import { useSnackbar } from 'notistack';
 import { CompositionForm } from '../components/CompositionForm';
 import { MIDIPlayer } from '../components/MIDIPlayer';
+import { MainLayout } from '../components/MainLayout';
 import { openAiService } from '../services/openAiService';
 import { MusicalIdea, GeneratedMusic } from '../types/music';
-import * as Tone from 'tone';
+import { motion } from 'framer-motion';
 
 export const CompositionPage: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [generatedMusic, setGeneratedMusic] = useState<GeneratedMusic | null>(null);
+    const { enqueueSnackbar } = useSnackbar();
 
     const handleGenerateMusic = async (idea: MusicalIdea) => {
         setLoading(true);
         try {
             const result = await openAiService.generateMusic(idea);
             setGeneratedMusic(result);
-            
-            // Initialize Tone.js
-            await Tone.start();
-            const synth = new Tone.PolySynth().toDestination();
-            
-            // Convert MIDI data to playable notes
-            // This is a placeholder - you'll need to implement actual MIDI parsing
-            const notes = ['C4', 'E4', 'G4'];
-            const now = Tone.now();
-            notes.forEach((note, i) => {
-                synth.triggerAttackRelease(note, "8n", now + i * 0.5);
-            });
+            enqueueSnackbar('Music generated successfully!', { variant: 'success' });
         } catch (error) {
             console.error('Error generating music:', error);
+            enqueueSnackbar(
+                error instanceof Error ? error.message : 'Failed to generate music',
+                { variant: 'error' }
+            );
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <Container maxWidth="lg">
-            <Box sx={{ py: 4 }}>
+        <MainLayout loading={loading}>
+            <Box
+                component={motion.div}
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.5 }}
+            >
                 <Typography variant="h2" component="h1" gutterBottom align="center">
                     MuseMap Composer
                 </Typography>
-                <Typography variant="h5" component="h2" gutterBottom align="center" color="text.secondary">
+                <Typography 
+                    variant="h5" 
+                    component="h2" 
+                    gutterBottom 
+                    align="center" 
+                    color="text.secondary"
+                    sx={{ mb: 4 }}
+                >
                     Create music using AI and music theory
                 </Typography>
 
-                <Paper elevation={3} sx={{ mt: 4, p: 3 }}>
+                <Paper 
+                    elevation={3} 
+                    sx={{ 
+                        mt: 4, 
+                        p: 3,
+                        transition: 'transform 0.2s ease-in-out',
+                        '&:hover': {
+                            transform: 'translateY(-2px)'
+                        }
+                    }}
+                >
                     <CompositionForm onSubmit={handleGenerateMusic} />
                 </Paper>
 
-                {loading && (
-                    <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-                        <CircularProgress />
-                    </Box>
-                )}
-
                 {generatedMusic && !loading && (
-                    <Paper elevation={3} sx={{ mt: 4, p: 3 }}>
+                    <Paper 
+                        component={motion.div}
+                        initial={{ y: 20, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        transition={{ duration: 0.5 }}
+                        elevation={3} 
+                        sx={{ 
+                            mt: 4, 
+                            p: 3,
+                            transition: 'transform 0.2s ease-in-out',
+                            '&:hover': {
+                                transform: 'translateY(-2px)'
+                            }
+                        }}
+                    >
                         <Typography variant="h6" gutterBottom>
                             Generated Music
                         </Typography>
@@ -83,6 +109,6 @@ export const CompositionPage: React.FC = () => {
                     </Paper>
                 )}
             </Box>
-        </Container>
+        </MainLayout>
     );
 };
