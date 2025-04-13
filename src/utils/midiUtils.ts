@@ -1,89 +1,71 @@
 import { Midi } from '@tonejs/midi';
 
-interface MIDINote {
-    pitch: string;
-    time: number;
-    duration: number;
-    velocity: number;
+// Interface matching the API response format
+interface APINote {
+    pitch: number;      // MIDI note number (e.g., 60 for C4)
+    startTime: number;  // in beats
+    duration: number;   // in beats
+    velocity: number;   // 0-127
 }
 
-interface TimeSignature {
-    numerator: number;
-    denominator: number;
+// Browser-compatible base64 encoding function
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+    }
+    return window.btoa(binary);
 }
 
-interface QuantizeOptions {
-    gridSize: number; // in beats (e.g., 1/4 for quarter notes)
-    swing?: number;   // 0-1, where 0.5 is straight timing
-}
-
+// Create MIDI file from API response format
 export function createMIDIFile(
-    notes: MIDINote[], 
-    tempo: number, 
-    timeSignature: TimeSignature = { numerator: 4, denominator: 4 },
-    quantizeOpts?: QuantizeOptions
+    notes: APINote[], 
+    tempo: number = 120, 
+    key: string = 'C', 
+    timeSignatureStr: string = '4/4'
 ): string {
     const midi = new Midi();
-    const track = midi.addTrack();
-
-    // Set tempo and time signature
+    
+    // Set metadata
+    midi.header.name = `MuseMap Composition in ${key}`;
     midi.header.setTempo(tempo);
-    midi.header.timeSignatures.push({
-        ticks: 0,
-        timeSignature: [timeSignature.numerator, timeSignature.denominator]
-    });
-
-    // Convert tempo to seconds per beat
-    const secondsPerBeat = 60 / tempo;
-
-    // Quantize notes if options are provided
-    const processedNotes = quantizeOpts 
-        ? quantizeNotes(notes, quantizeOpts, secondsPerBeat) 
-        : notes;
-
+    
+    // Parse time signature
+    const [numerator, denominator] = timeSignatureStr.split('/').map(Number);
+    if (numerator && denominator) {
+        midi.header.timeSignatures.push({
+            ticks: 0,
+            timeSignature: [numerator, denominator]
+        });
+    }
+    
+    // Add track with instrument
+    const track = midi.addTrack();
+    track.name = 'MuseMap Generated';
+    track.instrument.name = 'Grand Piano';
+    
     // Add notes to the track
-    processedNotes.forEach(note => {
+    notes.forEach(note => {
         track.addNote({
-            midi: getMIDINoteNumber(note.pitch),
-            time: note.time,
+            midi: typeof note.pitch === 'number' ? note.pitch : getMIDINoteNumber(note.pitch),
+            time: note.startTime,
             duration: note.duration,
-            velocity: note.velocity
+            velocity: note.velocity / 127 // Normalize to 0-1 for Tone.js
         });
     });
 
-    return Buffer.from(midi.toArray()).toString('base64');
+    // Use browser-compatible base64 encoding
+    return arrayBufferToBase64(midi.toArray());
 }
 
-function quantizeNotes(
-    notes: MIDINote[], 
-    options: QuantizeOptions,
-    secondsPerBeat: number
-): MIDINote[] {
-    const { gridSize, swing = 0.5 } = options;
-    const gridInSeconds = gridSize * secondsPerBeat;
-
-    return notes.map(note => {
-        // Calculate the nearest grid position
-        const gridPosition = Math.round(note.time / gridInSeconds) * gridInSeconds;
-        
-        // Apply swing if it's an off-beat position
-        const isOffBeat = (gridPosition / gridInSeconds) % 2 === 1;
-        const swingOffset = isOffBeat ? (swing - 0.5) * gridInSeconds : 0;
-
-        return {
-            ...note,
-            time: gridPosition + swingOffset,
-            // Quantize duration to avoid overlaps
-            duration: Math.max(
-                0.1, // Minimum duration
-                Math.round(note.duration / (gridInSeconds / 4)) * (gridInSeconds / 4)
-            )
-        };
-    });
-}
-
-// Improved MIDI note number conversion with error handling
+// Convert note names to MIDI numbers
 function getMIDINoteNumber(noteName: string): number {
+    // If already a number, return directly
+    if (!isNaN(Number(noteName))) {
+        return Number(noteName);
+    }
+    
     const noteMap: { [key: string]: number } = {
         'C': 0, 'C#': 1, 'Db': 1, 'D': 2, 'D#': 3, 'Eb': 3,
         'E': 4, 'F': 5, 'F#': 6, 'Gb': 6, 'G': 7, 'G#': 8,
@@ -109,16 +91,35 @@ function getMIDINoteNumber(noteName: string): number {
     return noteNumber + ((octaveNum + 1) * 12);
 }
 
-// Utility function to format duration in musical terms
-export function formatDuration(seconds: number, tempo: number): string {
-    const beatsPerSecond = tempo / 60;
-    const beats = seconds * beatsPerSecond;
+// Utility function to format duration in time format
+export function formatDuration(seconds: number): string {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
     
-    if (beats === 1) return 'quarter note';
-    if (beats === 0.5) return 'eighth note';
-    if (beats === 0.25) return 'sixteenth note';
-    if (beats === 2) return 'half note';
-    if (beats === 4) return 'whole note';
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+}
+
+// Extract key and time signature from string format
+export function parseMusicalAttributes(keySignature: string): {key: string, mode: 'major' | 'minor'} {
+    const keyMatch = keySignature.match(/([A-G][#b]?)\s*(major|minor|maj|min|M|m)/i);
     
-    return `${beats} beats`;
+    if (!keyMatch) {
+        return {key: 'C', mode: 'major'};
+    }
+    
+    const keyName = keyMatch[1];
+    const keyMode = keyMatch[2].toLowerCase();
+    
+    return {
+        key: keyName,
+        mode: keyMode.startsWith('m') && keyMode !== 'major' ? 'minor' : 'major'
+    };
+}
+
+// Helper function to convert from MIDI note number to note name
+export function midiNoteToName(midiNote: number): string {
+    const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const octave = Math.floor(midiNote / 12) - 1;
+    const note = notes[midiNote % 12];
+    return `${note}${octave}`;
 }

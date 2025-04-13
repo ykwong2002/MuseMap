@@ -159,7 +159,7 @@ export const MIDIPlayer: React.FC<MIDIPlayerProps> = ({ midiData, tempo, onQuant
                         />
                     </Box>
                     <Typography sx={{ minWidth: 100 }}>
-                        {formatDuration(progress, tempo)} / {formatDuration(duration, tempo)}
+                        {formatDuration(progress)} / {formatDuration(duration)}
                     </Typography>
                 </Box>
 

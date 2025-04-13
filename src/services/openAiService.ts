@@ -1,6 +1,17 @@
 import { MusicalIdea, GeneratedMusic } from '../types/music';
-import { neo4jService } from './neo4jService';
 import { createMIDIFile } from '../utils/midiUtils';
+
+interface MusicAPIResponse {
+    notes: Array<{
+        pitch: number;
+        startTime: number;
+        duration: number;
+        velocity: number;
+    }>;
+    key: string;
+    timeSignature: string;
+    tempo?: number;
+}
 
 interface ServiceError {
     status?: number;
@@ -37,54 +48,20 @@ class OpenAiService {
         return isRateLimit || isServerError || isTimeout;
     }
 
-    private async generateMusicalContext(idea: MusicalIdea): Promise<string> {
-        try {
-            const contextParts: string[] = [];
-
-            if (idea.genre) {
-                const genreInfo = await neo4jService.getGenreCharacteristics(idea.genre);
-                if (genreInfo) {
-                    contextParts.push(`Genre: ${idea.genre}
-                    - Typical tempo range: ${genreInfo.tempoMin}-${genreInfo.tempoMax} BPM
-                    - Common progressions: ${genreInfo.commonProgressions.join(', ')}
-                    - Common scales: ${genreInfo.commonScales.join(', ')}`);
-                }
-            }
-
-            if (idea.mood) {
-                const relevantScales = await neo4jService.findScalesByMood(idea.mood);
-                if (relevantScales.length > 0) {
-                    contextParts.push(`Mood-appropriate scales:
-                    ${relevantScales.map(scale => `- ${scale.name}: ${scale.notes.join(' ')}`).join('\n')}`);
-                }
-            }
-
-            if (idea.scale) {
-                const scaleChords = await neo4jService.findChordsByScale(idea.scale);
-                if (scaleChords.length > 0) {
-                    contextParts.push(`Available chords in scale:
-                    ${scaleChords.map(chord => `- ${chord.name} (${chord.function}): ${chord.notes.join(' ')}`).join('\n')}`);
-                }
-            }
-
-            return contextParts.join('\n\n') || 'No specific musical context available.';
-        } catch (error) {
-            console.error('Error generating musical context:', error);
-            return 'Unable to fetch musical context. Using default musical theory rules.';
-        }
+    async getMusicalContext(): Promise<string> {
+        // Context generation is now handled by the server
+        return '';
     }
 
     async generateMusic(musicalIdea: MusicalIdea): Promise<GeneratedMusic> {
-        const context = await this.generateMusicalContext(musicalIdea);
-        
-        const apiResponse = await this.retry(async () => {
+        // Send the request to the server
+        const apiResponse = await this.retry<MusicAPIResponse>(async () => {
             const response = await fetch(`${this.apiBaseUrl}/api/generate-music`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    context,
                     musicalIdea
                 })
             });
@@ -97,14 +74,20 @@ class OpenAiService {
         });
 
         try {
-            const midi = createMIDIFile(apiResponse.notes, musicalIdea.tempo || 120);
+            // Create MIDI file from the API response
+            const midi = createMIDIFile(
+                apiResponse.notes,
+                apiResponse.tempo || musicalIdea.tempo || 120,
+                apiResponse.key,
+                apiResponse.timeSignature
+            );
 
             return {
                 midi,
                 metadata: {
                     genre: musicalIdea.genre || "unspecified",
                     mood: musicalIdea.mood || ["neutral"],
-                    tempo: musicalIdea.tempo || 120,
+                    tempo: apiResponse.tempo || musicalIdea.tempo || 120,
                     key: apiResponse.key,
                     timeSignature: apiResponse.timeSignature
                 }
