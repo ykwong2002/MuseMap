@@ -1,12 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { OpenAI } from 'openai';
 import { resolve } from 'path';
 import neo4j from 'neo4j-driver';
-import fs from 'fs';
-import path from 'path';
-import MidiWriter from 'midi-writer-js';
 
 // Load environment variables
 dotenv.config({ path: resolve(__dirname, '../.env') });
@@ -23,11 +19,6 @@ const neo4jDriver = neo4j.driver(
     )
 );
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY
-});
-
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -35,23 +26,7 @@ app.use(express.json());
 // Type definitions for scale records
 interface ScaleRecord {
   name: string;
-  notes: string[];
-  genres: string[];
-  moods: string[];
-}
-
-// Type definitions for chord progression records
-interface ProgressionRecord {
-  name: string;
-  chords: string[];
-  genres: string[];
-  moods: string[];
-}
-
-// Type definitions for rhythm records
-interface RhythmRecord {
-  name: string;
-  pattern: string;
+  notes: string[] | number[];
   genres: string[];
   moods: string[];
 }
@@ -64,14 +39,6 @@ interface Note {
   velocity: number;
 }
 
-// Type definition for music pattern
-interface MusicPattern {
-  notes: Note[];
-  key: string;
-  timeSignature: string;
-  tempo: number;
-}
-
 // Type definition for musical idea request
 interface MusicalIdea {
   genre?: string;
@@ -80,86 +47,12 @@ interface MusicalIdea {
   tempo?: number;
 }
 
-/**
- * Selects a scale from the provided records based on complexity level
- * @param scaleRecords Array of scale records to choose from
- * @param complexity Complexity level (1-10)
- * @returns The selected scale record
- */
-function selectBasedOnComplexity(scaleRecords: ScaleRecord[], complexity: number): ScaleRecord {
-    if (scaleRecords.length === 0) {
-        // Fallback to C major if no scales are available
-        return {
-            name: 'C Major',
-            notes: ['C', 'D', 'E', 'F', 'G', 'A', 'B'], // C major scale notes
-            genres: ['Classical'],
-            moods: ['Neutral']
-        };
-    }
-    
-    // Sort scales by estimated complexity
-    const sortedScales = [...scaleRecords].sort((a, b) => {
-        // Estimate complexity based on scale properties
-        const complexityA = estimateScaleComplexity(a);
-        const complexityB = estimateScaleComplexity(b);
-        
-        // For lower requested complexity, prefer simpler scales
-        // For higher requested complexity, prefer more complex scales
-        return complexity <= 5 
-            ? complexityA - complexityB  // Ascending order for low complexity
-            : complexityB - complexityA; // Descending order for high complexity
-    });
-    
-    // For very low complexity (1-3), prefer major/pentatonic scales
-    if (complexity <= 3) {
-        const simpleScale = sortedScales.find(scale => 
-            scale.name.toLowerCase().includes('major') || 
-            scale.name.toLowerCase().includes('pentatonic')
-        );
-        if (simpleScale) return simpleScale;
-    }
-    
-    // For very high complexity (8-10), prefer modal/jazz scales
-    if (complexity >= 8) {
-        const complexScale = sortedScales.find(scale => 
-            scale.name.toLowerCase().includes('diminished') || 
-            scale.name.toLowerCase().includes('lydian') ||
-            scale.name.toLowerCase().includes('locrian') ||
-            scale.name.toLowerCase().includes('altered')
-        );
-        if (complexScale) return complexScale;
-    }
-    
-    // For medium complexity, select from the middle of the sorted array
-    const index = Math.min(
-        Math.floor((complexity / 10) * sortedScales.length), 
-        sortedScales.length - 1
-    );
-    
-    return sortedScales[index];
-}
-
-/**
- * Estimates the complexity of a scale based on its properties
- * @param scale The scale record to evaluate
- * @returns A numeric complexity score
- */
-function estimateScaleComplexity(scale: ScaleRecord): number {
-    const name = scale.name.toLowerCase();
-    
-    // Base complexity scores by scale type
-    if (name.includes('pentatonic')) return 2;
-    if (name.includes('major')) return 3;
-    if (name.includes('minor')) return 4;
-    if (name.includes('blues')) return 5;
-    if (name.includes('dorian') || name.includes('mixolydian')) return 6;
-    if (name.includes('phrygian') || name.includes('lydian')) return 7;
-    if (name.includes('locrian') || name.includes('harmonic')) return 8;
-    if (name.includes('diminished') || name.includes('whole tone')) return 9;
-    if (name.includes('altered') || name.includes('enigmatic')) return 10;
-    
-    // Default medium complexity
-    return 5;
+// Type definition for music generator result
+interface MusicResult {
+  notes: Note[];
+  key: string;
+  timeSignature: string;
+  tempo: number;
 }
 
 // Utility function to get data from Neo4j
@@ -276,8 +169,8 @@ app.get('/api/progressions-by-genre', async (req, res) => {
     }
 });
 
-// Helper function to generate simple music patterns
-function generateSimpleMusicPattern(idea: any) {
+// Helper function to generate music patterns
+function generateSimpleMusicPattern(idea: MusicalIdea): MusicResult {
     // Default values
     const tempo = idea.tempo || 120;
     const genre = idea.genre || 'Classical';
@@ -285,7 +178,7 @@ function generateSimpleMusicPattern(idea: any) {
     const complexity = idea.complexity || 5;
     
     // Generate a simple scale based on mood
-    let scale = [];
+    let scale: number[] = [];
     let key = 'C';
     
     if (moods.some((m: string) => ['Sad', 'Dark', 'Mysterious'].includes(m))) {
@@ -337,7 +230,7 @@ function generateSimpleMusicPattern(idea: any) {
     noteCount = Math.max(8, Math.min(32, noteCount + (complexity - 5) * 2));
     
     // Generate the notes
-    const notes = [];
+    const notes: Note[] = [];
     
     // Create a basic chord progression (I-IV-V)
     const chordPattern = [0, 0, 3, 3, 4, 4, 0, 0];
@@ -435,7 +328,7 @@ function generateSimpleMusicPattern(idea: any) {
             const chordRoot = chordPattern[chordIndex];
             
             // Generate chord voicings based on complexity
-            let chordIntervals;
+            let chordIntervals: number[];
             if (complexity >= 8) {
                 // Extended chord voicings (7th, 9th, etc.)
                 chordIntervals = [0, 4, 7, 11]; // maj7
@@ -508,7 +401,7 @@ app.post('/api/generate-music', async (req, res) => {
         try {
             console.log('Generating music pattern for:', musicalIdea);
             
-            // Use our simple generator instead of OpenAI
+            // Use our simple generator
             const musicData = generateSimpleMusicPattern(musicalIdea);
             
             console.log('Generated music pattern with', musicData.notes.length, 'notes');
@@ -750,45 +643,9 @@ app.post('/api/expand-db', async (req, res) => {
                     commonRhythms: ['4/4', '6/8'],
                     preferredQuantization: 0.25
                 })
-                CREATE (melodic_minor:Scale {
-                    id: 'melodic_minor',
-                    name: 'Melodic Minor',
-                    notes: ['C', 'D', 'Eb', 'F', 'G', 'A', 'B'],
-                    type: 'minor',
-                    mood: ['Sophisticated', 'Elegant', 'Complex'],
-                    commonRhythms: ['4/4', '3/4'],
-                    preferredQuantization: 0.25
-                })
-                CREATE (minor_pentatonic:Scale {
-                    id: 'minor_pentatonic',
-                    name: 'Minor Pentatonic',
-                    notes: ['C', 'Eb', 'F', 'G', 'Bb'],
-                    type: 'pentatonic',
-                    mood: ['Bluesy', 'Soulful', 'Earthy'],
-                    commonRhythms: ['4/4', '12/8'],
-                    preferredQuantization: 0.25
-                })
-                CREATE (whole_tone:Scale {
-                    id: 'whole_tone',
-                    name: 'Whole Tone Scale',
-                    notes: ['C', 'D', 'E', 'F#', 'G#', 'A#'],
-                    type: 'symmetric',
-                    mood: ['Dreamy', 'Ambiguous', 'Floating'],
-                    commonRhythms: ['4/4'],
-                    preferredQuantization: 0.25
-                })
-                CREATE (diminished:Scale {
-                    id: 'diminished',
-                    name: 'Diminished Scale',
-                    notes: ['C', 'D', 'Eb', 'F', 'Gb', 'Ab', 'A', 'B'],
-                    type: 'symmetric',
-                    mood: ['Tense', 'Mysterious', 'Unstable'],
-                    commonRhythms: ['4/4'],
-                    preferredQuantization: 0.25
-                })
             `);
             
-            // Add more chord types with voice leading preferences
+            // Add more complex chord types
             await session.run(`
                 CREATE (cmaj7:Chord {
                     id: 'Cmaj7',
@@ -808,255 +665,38 @@ app.post('/api/expand-db', async (req, res) => {
                     voiceLeading: ['C->B', 'A->G', 'F->E', 'D->C'],
                     dissonanceLevel: 3
                 })
-                CREATE (g13:Chord {
-                    id: 'G13',
-                    name: 'G Dominant 13th',
-                    notes: ['G', 'B', 'D', 'F', 'A', 'E'],
-                    type: 'dominant13',
-                    function: 'dominant',
-                    voiceLeading: ['E->C', 'A->G', 'F->E', 'D->C', 'B->C', 'G->C'],
-                    dissonanceLevel: 7
-                })
-                CREATE (fmaj9:Chord {
-                    id: 'Fmaj9',
-                    name: 'F Major 9th',
-                    notes: ['F', 'A', 'C', 'E', 'G'],
-                    type: 'major9',
-                    function: 'subdominant',
-                    voiceLeading: ['G->A', 'E->D', 'C->D', 'A->B', 'F->G'],
-                    dissonanceLevel: 4
-                })
-                CREATE (em7b5:Chord {
-                    id: 'Em7b5',
-                    name: 'E Minor 7 Flat 5',
-                    notes: ['E', 'G', 'Bb', 'D'],
-                    type: 'half-diminished',
-                    function: 'predominant',
-                    voiceLeading: ['D->C', 'Bb->A', 'G->A', 'E->F'],
-                    dissonanceLevel: 6
-                })
-                CREATE (a7alt:Chord {
-                    id: 'A7alt',
-                    name: 'A Altered Dominant',
-                    notes: ['A', 'C#', 'Eb', 'G', 'Bb', 'D#'],
-                    type: 'altered',
-                    function: 'secondary-dominant',
-                    voiceLeading: ['D#->D', 'Bb->A', 'G->F#', 'Eb->D', 'C#->D', 'A->D'],
-                    dissonanceLevel: 9
-                })
             `);
 
-            // Add jazz progressions with complex harmony
-            await session.run(`
-                CREATE (p8:Progression {
-                    id: 'jazz-251',
-                    name: 'Jazz II-V-I',
-                    chords: ['Dm7', 'G7', 'Cmaj7'],
-                    genre: ['Jazz', 'Fusion', 'Bebop'],
-                    mood: ['Sophisticated', 'Elegant', 'Modern'],
-                    commonRhythms: ['4/4'],
-                    preferredQuantization: 0.125,
-                    useSwing: true,
-                    complexity: 7
-                })
-                CREATE (p9:Progression {
-                    id: 'jazz-1625',
-                    name: 'Jazz I-VI-II-V',
-                    chords: ['Cmaj7', 'Am7', 'Dm7', 'G7'],
-                    genre: ['Jazz', 'Bossa Nova'],
-                    mood: ['Smooth', 'Elegant', 'Flowing'],
-                    commonRhythms: ['4/4'],
-                    preferredQuantization: 0.125,
-                    useSwing: true,
-                    complexity: 8
-                })
-                CREATE (p10:Progression {
-                    id: 'modal-jazz',
-                    name: 'Modal Jazz Vamp',
-                    chords: ['Dm7', 'Em7', 'Fmaj7', 'G7sus4'],
-                    genre: ['Modal Jazz', 'Contemporary'],
-                    mood: ['Contemplative', 'Expansive', 'Modern'],
-                    commonRhythms: ['4/4'],
-                    preferredQuantization: 0.125,
-                    useSwing: false,
-                    complexity: 6
-                })
-                CREATE (p11:Progression {
-                    id: 'blues-jazz',
-                    name: 'Jazz Blues',
-                    chords: ['C7', 'F7', 'C7', 'C7', 'F7', 'F7', 'C7', 'C7', 'G7', 'F7', 'C7', 'G7'],
-                    genre: ['Jazz Blues', 'Bebop'],
-                    mood: ['Bluesy', 'Expressive', 'Soulful'],
-                    commonRhythms: ['4/4'],
-                    preferredQuantization: 0.125,
-                    useSwing: true,
-                    complexity: 8
-                })
-                CREATE (p12:Progression {
-                    id: 'flamenco',
-                    name: 'Spanish Flamenco',
-                    chords: ['Am', 'G', 'F', 'E'],
-                    genre: ['Flamenco', 'World'],
-                    mood: ['Passionate', 'Exotic', 'Dramatic'],
-                    commonRhythms: ['12/8', '6/8'],
-                    preferredQuantization: 0.125,
-                    useSwing: false,
-                    complexity: 7
-                })
-                CREATE (p13:Progression {
-                    id: 'impressionist',
-                    name: 'Impressionist Progression',
-                    chords: ['Fmaj7', 'Em7b5', 'Dm9', 'Cmaj7#11'],
-                    genre: ['Impressionist', 'Classical'],
-                    mood: ['Dreamy', 'Colorful', 'Sophisticated'],
-                    commonRhythms: ['4/4', '3/4'],
-                    preferredQuantization: 0.25,
-                    useSwing: false,
-                    complexity: 9
-                })
-            `);
-            
-            // Add modern genres
-            await session.run(`
-                CREATE (fusion:Genre {
-                    id: 'fusion',
-                    name: 'Fusion',
-                    commonProgressions: ['jazz-251', 'modal-jazz'],
-                    commonScales: ['dorian', 'lydian', 'mixolydian'],
-                    tempoMin: 100,
-                    tempoMax: 160,
-                    commonRhythms: ['4/4', '7/8'],
-                    preferredQuantization: 0.125,
-                    useSwing: false,
-                    complexity: 8
-                })
-                CREATE (ambient:Genre {
-                    id: 'ambient',
-                    name: 'Ambient',
-                    commonProgressions: ['impressionist', 'modal-jazz'],
-                    commonScales: ['lydian', 'whole_tone', 'dorian'],
-                    tempoMin: 60,
-                    tempoMax: 90,
-                    commonRhythms: ['4/4'],
-                    preferredQuantization: 0.125,
-                    useSwing: false,
-                    complexity: 7
-                })
-                CREATE (funk:Genre {
-                    id: 'funk',
-                    name: 'Funk',
-                    commonProgressions: ['i-IV', 'i-bVII'],
-                    commonScales: ['minor_pentatonic', 'dorian', 'mixolydian'],
-                    tempoMin: 90,
-                    tempoMax: 120,
-                    commonRhythms: ['4/4', '16/16'],
-                    preferredQuantization: 0.0625,
-                    useSwing: false,
-                    complexity: 7
-                })
-                CREATE (flamenco:Genre {
-                    id: 'flamenco',
-                    name: 'Flamenco',
-                    commonProgressions: ['flamenco', 'i-bVII-bVI-V'],
-                    commonScales: ['harmonic_minor', 'phrygian'],
-                    tempoMin: 90,
-                    tempoMax: 140,
-                    commonRhythms: ['12/8', '6/8'],
-                    preferredQuantization: 0.125,
-                    useSwing: false,
-                    complexity: 8
-                })
-            `);
-            
-            // Add rhythmic patterns for different genres
-            await session.run(`
-                CREATE (rp5:RhythmicPattern {
-                    id: 'funk_groove',
-                    name: 'Funk Groove',
-                    timeSignature: '16/16',
-                    accentedBeats: [1, 5, 11, 13],
-                    syncopatedBeats: [4, 7, 10, 14],
-                    subdivision: 0.0625,
-                    genres: ['Funk', 'R&B']
-                })
-                CREATE (rp6:RhythmicPattern {
-                    id: 'flamenco_buleria',
-                    name: 'Bulería',
-                    timeSignature: '12/8',
-                    accentedBeats: [1, 4, 7, 9, 11],
-                    subdivision: 0.125,
-                    genres: ['Flamenco', 'World']
-                })
-                CREATE (rp7:RhythmicPattern {
-                    id: 'odd_time',
-                    name: 'Odd Time Signature',
-                    timeSignature: '7/8',
-                    accentedBeats: [1, 4, 6],
-                    subdivision: 0.125,
-                    genres: ['Fusion', 'Progressive']
-                })
-                CREATE (rp8:RhythmicPattern {
-                    id: 'ambient_flow',
-                    name: 'Ambient Flow',
-                    timeSignature: '4/4',
-                    accentedBeats: [1],
-                    subdivision: 0.25,
-                    genres: ['Ambient', 'Electronic']
-                })
-            `);
-            
             // Connect new scales to genres
             await session.run(`
-                MATCH (g:Genre {id: 'fusion'})
-                MATCH (s:Scale {id: 'lydian'})
+                MATCH (g:Genre {id: 'jazz'})
+                MATCH (s:Scale {id: 'dorian'})
                 CREATE (g)-[:COMMONLY_USES]->(s)
             `);
             
+            // Add mood entities
             await session.run(`
-                MATCH (g:Genre {id: 'flamenco'})
-                MATCH (s:Scale {id: 'harmonic_minor'})
-                CREATE (g)-[:COMMONLY_USES]->(s)
+                CREATE (happy:Mood {id: 'happy', name: 'Happy', valence: 0.8, arousal: 0.6})
+                CREATE (sad:Mood {id: 'sad', name: 'Sad', valence: 0.2, arousal: 0.3})
+                CREATE (energetic:Mood {id: 'energetic', name: 'Energetic', valence: 0.7, arousal: 0.9})
+                CREATE (calm:Mood {id: 'calm', name: 'Calm', valence: 0.5, arousal: 0.2})
+                CREATE (tense:Mood {id: 'tense', name: 'Tense', valence: 0.4, arousal: 0.7})
             `);
             
+            // Connect moods to scales
             await session.run(`
-                MATCH (g:Genre {id: 'ambient'})
-                MATCH (s:Scale {id: 'whole_tone'})
-                CREATE (g)-[:COMMONLY_USES]->(s)
-            `);
-            
-            // Connect new progressions to genres
-            await session.run(`
-                MATCH (g:Genre {id: 'fusion'})
-                MATCH (p:Progression {id: 'modal-jazz'})
-                CREATE (g)-[:COMMONLY_USES]->(p)
-            `);
-            
-            await session.run(`
-                MATCH (g:Genre {id: 'flamenco'})
-                MATCH (p:Progression {id: 'flamenco'})
-                CREATE (g)-[:COMMONLY_USES]->(p)
-            `);
-            
-            // Connect mood to scales
-            await session.run(`
-                MATCH (m:Mood {id: 'energetic'})
-                MATCH (s:Scale {id: 'mixolydian'})
+                MATCH (m:Mood {id: 'happy'})
+                MATCH (s:Scale {id: 'major'})
                 CREATE (m)-[:SUGGESTS]->(s)
             `);
             
             await session.run(`
-                MATCH (m:Mood {id: 'tense'})
-                MATCH (s:Scale {id: 'diminished'})
+                MATCH (m:Mood {id: 'sad'})
+                MATCH (s:Scale {id: 'minor'})
                 CREATE (m)-[:SUGGESTS]->(s)
             `);
             
-            await session.run(`
-                MATCH (m:Mood {id: 'calm'})
-                MATCH (s:Scale {id: 'lydian'})
-                CREATE (m)-[:SUGGESTS]->(s)
-            `);
-            
-            res.json({ message: 'Music theory knowledge graph expanded successfully with advanced harmony and genres!' });
+            res.json({ message: 'Music theory knowledge graph expanded successfully!' });
         } finally {
             await session.close();
         }
