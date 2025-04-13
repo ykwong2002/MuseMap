@@ -1,27 +1,13 @@
-# MuseMap: Music Composition Assistant with Knowledge Graphs and RAG
+# MuseMap: Music Composition Assistant with Knowledge Graphs
 
-MuseMap is an intelligent music composition assistant that harnesses the power of Knowledge Graphs and Retrieval-Augmented Generation (RAG) to help composers create musically coherent and innovative pieces based on music theory principles.
+MuseMap is a music composition assistant that uses a Neo4j knowledge graph to help composers create music based on music theory principles. The application allows users to specify a genre, mood, and complexity level to generate MIDI compositions.
 
-## Concept Overview
+## Current Capabilities
 
-MuseMap develops a comprehensive knowledge graph of music theory elements — such as scales, chords, progressions, rhythmic patterns, instrumentation, and genre conventions — to assist composers in generating new musical pieces. When a user supplies a seed (for example, a chord progression, a desired genre, or mood), the system retrieves relevant nodes from the knowledge graph and uses this structured context to generate musically coherent compositions.
-
-## Key Features
-
-### Knowledge Graph
-- **Entities**: Chords, scales, motifs, time signatures, instruments, and genres
-- **Relationships**: How scales lead to specific chord progressions, typical rhythmic patterns for different genres, and common modulatory transitions
-- **Musical Rules**: Voice leading, harmonic resolution, and other music theory principles
-
-### Retrieval-Augmented Generation
-- Context-aware music generation based on the knowledge graph
-- Genre and mood-appropriate musical suggestions
-- Configurable complexity levels for different user needs
-
-### User Experience
-- Interactive interface for customizing parameters such as genre, emotional tone, and complexity
-- Real-time MIDI playback
-- Simple and intuitive design
+- **Music Generation**: Creates melodies based on specified genre, mood, and complexity
+- **Knowledge Graph**: Stores music theory relationships in Neo4j (scales, chords, progressions, genres)
+- **MIDI Playback**: Built-in player for listening to generated compositions
+- **Parameter Customization**: Select genre, mood, and complexity levels
 
 ## Tech Stack
 
@@ -34,14 +20,13 @@ MuseMap develops a comprehensive knowledge graph of music theory elements — su
 - **Backend**:
   - Express.js server
   - Neo4j database for knowledge graph
-  - OpenAI API for generative capabilities
+  - Custom algorithmic composition engine
 
 ## Getting Started
 
 ### Prerequisites
 - Node.js (v16+)
 - Neo4j Database (local or cloud instance)
-- OpenAI API key
 
 ### Installation
 
@@ -69,7 +54,6 @@ MuseMap develops a comprehensive knowledge graph of music theory elements — su
    NEO4J_URI=bolt://localhost:7687
    NEO4J_USER=neo4j
    NEO4J_PASSWORD=your_password
-   OPENAI_API_KEY=your_openai_api_key
    PORT=3001
    ```
 
@@ -84,29 +68,45 @@ MuseMap develops a comprehensive knowledge graph of music theory elements — su
    curl -X POST http://localhost:3001/api/setup-db
    ```
 
-5. Start the development server:
+5. Start both the server and frontend:
    ```bash
-   npm run dev
+   npm run dev:all
    ```
 
 ## Usage
 
 1. Navigate to the application in your browser (default: http://localhost:5173)
-2. Select a musical genre, mood, and desired complexity
-3. Click "Generate Music" to create a new composition
-4. Play back the MIDI using the built-in player
-5. Adjust parameters and regenerate as needed
+2. Select a musical genre (Jazz, Rock, Blues, or Classical)
+3. Choose mood options (Happy, Sad, Soulful, etc.)
+4. Set the complexity level (1-10)
+5. Click "Generate Music" to create a new composition
+6. Use the built-in MIDI player to listen to your composition
+
+## Music Generation Process
+
+The current version uses a deterministic algorithm that:
+1. Selects appropriate scales based on the requested mood
+2. Uses genre characteristics to determine note density, velocity, and rhythm
+3. Applies a simple harmonic progression (I-IV-V pattern)
+4. Adjusts complexity by varying note count and rhythmic patterns
+5. Generates MIDI data that can be played in the browser
 
 ## Knowledge Graph Structure
 
-MuseMap's knowledge graph includes the following key components:
+MuseMap's knowledge graph contains:
 
-- **Scales**: Major, minor, pentatonic, blues, etc. with mood associations
-- **Chords**: Major, minor, seventh, etc. with functional relationships
+- **Scales**: Major, minor, pentatonic, blues with mood associations
+- **Chords**: Major, minor, seventh with functional relationships
 - **Progressions**: Common chord sequences with genre associations
-- **Genres**: Musical styles with typical tempo ranges, rhythms, and progressions
+- **Genres**: Musical styles with typical tempo ranges and rhythms
 
-The relationships between these components form the foundation for musically intelligent generation.
+## Future Development
+
+- Add AI-powered generation capabilities
+- Expand the music theory knowledge graph
+- Support for more complex musical structures
+- Add harmonic analysis features
+- Support exporting to different file formats
 
 ## Contributing
 
@@ -119,4 +119,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Acknowledgments
 
 - Special thanks to music theory educators and resources that informed our knowledge graph
-- The Neo4j and OpenAI communities for their excellent tools and documentation
+- The Neo4j community for their excellent tools and documentation
