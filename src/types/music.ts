@@ -27,7 +27,9 @@ export interface Genre {
     name: string;
     commonProgressions: string[]; // References to progression IDs
     commonScales: string[]; // References to scale IDs
-    typicalTempo: {
+    tempoMin: number;
+    tempoMax: number;
+    typicalTempo?: {
         min: number;
         max: number;
     };

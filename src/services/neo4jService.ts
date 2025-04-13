@@ -18,6 +18,17 @@ class Neo4jService {
         return this.driver.session();
     }
 
+    private transformGenreRecord(record: any): Genre {
+        const properties = record.get('g').properties;
+        return {
+            ...properties,
+            typicalTempo: {
+                min: properties.tempoMin,
+                max: properties.tempoMax
+            }
+        };
+    }
+
     async findScalesByMood(mood: string[]): Promise<Scale[]> {
         const session = await this.getSession();
         try {
@@ -48,7 +59,7 @@ class Neo4jService {
         }
     }
 
-    async getRelatedChords(scaleId: string): Promise<Chord[]> {
+    async findChordsByScale(scaleId: string): Promise<Chord[]> {
         const session = await this.getSession();
         try {
             const result = await session.run(
@@ -71,7 +82,7 @@ class Neo4jService {
                 { genreName }
             );
             return result.records.length > 0 
-                ? result.records[0].get('g').properties as Genre
+                ? this.transformGenreRecord(result.records[0])
                 : null;
         } finally {
             await session.close();
