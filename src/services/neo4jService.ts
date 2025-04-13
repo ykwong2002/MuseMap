@@ -1,30 +1,51 @@
-import neo4j, { Driver, Session } from 'neo4j-driver';
+import neo4j, { Driver, Session, Record, Node } from 'neo4j-driver';
 import { Scale, Chord, Progression, Genre } from '../types/music';
+import { config } from '../config/env';
+
+interface Neo4jGenreNode extends Node {
+    properties: {
+        id: string;
+        name: string;
+        commonProgressions: string[];
+        commonScales: string[];
+        tempoMin: number;
+        tempoMax: number;
+    };
+}
 
 class Neo4jService {
     private driver: Driver;
 
     constructor() {
-        this.driver = neo4j.driver(
-            process.env.NEO4J_URI || 'bolt://localhost:7687',
-            neo4j.auth.basic(
-                process.env.NEO4J_USER || 'neo4j',
-                process.env.NEO4J_PASSWORD || 'password'
-            )
-        );
+        const { uri, user, password } = config.neo4j;
+        const cleanUri = uri.startsWith('bolt://') ? uri : `bolt://${uri}`;
+
+        try {
+            this.driver = neo4j.driver(
+                cleanUri,
+                neo4j.auth.basic(user, password),
+                {
+                    maxConnectionPoolSize: 50,
+                    connectionTimeout: 5000, // 5 seconds
+                }
+            );
+        } catch (error) {
+            console.error('Failed to create Neo4j driver:', error);
+            throw error;
+        }
     }
 
     async getSession(): Promise<Session> {
         return this.driver.session();
     }
 
-    private transformGenreRecord(record: any): Genre {
-        const properties = record.get('g').properties;
+    private transformGenreRecord(record: Record): Genre {
+        const genreNode = record.get('g') as Neo4jGenreNode;
         return {
-            ...properties,
+            ...genreNode.properties,
             typicalTempo: {
-                min: properties.tempoMin,
-                max: properties.tempoMax
+                min: genreNode.properties.tempoMin,
+                max: genreNode.properties.tempoMax
             }
         };
     }
