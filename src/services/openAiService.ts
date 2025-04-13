@@ -77,33 +77,27 @@ class OpenAiService {
     async generateMusic(musicalIdea: MusicalIdea): Promise<GeneratedMusic> {
         const context = await this.generateMusicalContext(musicalIdea);
         
-        const response = await this.retry(async () => {
-            try {
-                const result = await fetch(`${this.apiBaseUrl}/api/generate-music`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        context,
-                        musicalIdea
-                    })
-                });
+        const apiResponse = await this.retry(async () => {
+            const response = await fetch(`${this.apiBaseUrl}/api/generate-music`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    context,
+                    musicalIdea
+                })
+            });
 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const data = await response.json();
-                return data;
-            } catch (error) {
-                console.error('Error in API call:', error);
-                throw error;
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
+
+            return await response.json();
         });
 
         try {
-            const midi = createMIDIFile(response.notes, musicalIdea.tempo || 120);
+            const midi = createMIDIFile(apiResponse.notes, musicalIdea.tempo || 120);
 
             return {
                 midi,
@@ -111,8 +105,8 @@ class OpenAiService {
                     genre: musicalIdea.genre || "unspecified",
                     mood: musicalIdea.mood || ["neutral"],
                     tempo: musicalIdea.tempo || 120,
-                    key: response.key,
-                    timeSignature: response.timeSignature
+                    key: apiResponse.key,
+                    timeSignature: apiResponse.timeSignature
                 }
             };
         } catch (error) {

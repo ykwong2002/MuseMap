@@ -64,8 +64,8 @@ class Neo4jService {
         return {
             ...genreNode.properties,
             typicalTempo: {
-                min: genreNode.properties.tempoMin,
-                max: genreNode.properties.tempoMax
+                min: Number(genreNode.properties.tempoMin),
+                max: Number(genreNode.properties.tempoMax)
             }
         };
     }

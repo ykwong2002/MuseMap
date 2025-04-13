@@ -5,7 +5,7 @@ import { OpenAI } from 'openai';
 import { resolve } from 'path';
 
 // Load environment variables
-dotenv.config({ path: resolve(__dirname, '../../.env') });
+dotenv.config({ path: resolve(__dirname, '../.env') });
 
 const app = express();
 const port = process.env.PORT || 3001;

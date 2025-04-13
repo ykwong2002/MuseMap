@@ -63,8 +63,10 @@ export const CompositionForm: React.FC<CompositionFormProps> = ({ onSubmit }) =>
             if (genre) {
                 const genreData = await neo4jService.getGenreCharacteristics(genre);
                 if (genreData?.typicalTempo) {
-                    setTempoRange(genreData.typicalTempo);
-                    setTempo((genreData.typicalTempo.min + genreData.typicalTempo.max) / 2);
+                    const min = Number(genreData.typicalTempo.min);
+                    const max = Number(genreData.typicalTempo.max);
+                    setTempoRange({ min, max });
+                    setTempo(Math.floor((min + max) / 2));
                 }
             }
         };
