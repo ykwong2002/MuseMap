@@ -1,54 +1,101 @@
-# React + TypeScript + Vite
+# MuseMap
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+MuseMap is a modern web application that combines music composition, AI-powered music generation, and MIDI playback capabilities. Built with React, TypeScript, and Material-UI, it provides an intuitive interface for creating and exploring musical compositions.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **AI-Powered Music Generation**: Leverages OpenAI's API to generate musical compositions
+- **MIDI Playback**: Built-in MIDI player for listening to generated compositions
+- **Neo4j Database Integration**: Stores and manages musical data and relationships
+- **Modern UI**: Clean and responsive interface built with Material-UI
+- **Error Handling**: Robust error boundary implementation for graceful error management
 
-## Expanding the ESLint configuration
+## Tech Stack
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- **Frontend**:
+  - React 19
+  - TypeScript
+  - Material-UI
+  - Framer Motion
+  - Tone.js
+  - @tonejs/midi
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+- **Backend**:
+  - Neo4j Database
+  - OpenAI API
+
+## Prerequisites
+
+- Node.js (latest LTS version recommended)
+- Neo4j Database
+- OpenAI API key
+
+## Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/MuseMap.git
+   cd MuseMap
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Set up environment variables:
+   Create a `.env` file in the root directory with the following variables:
+   ```
+   VITE_OPENAI_API_KEY=your_openai_api_key
+   VITE_NEO4J_URI=your_neo4j_uri
+   VITE_NEO4J_USER=your_neo4j_username
+   VITE_NEO4J_PASSWORD=your_neo4j_password
+   ```
+
+4. Initialize the database:
+   ```bash
+   npm run setup-db
+   ```
+
+## Development
+
+To start the development server:
+```bash
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+The application will be available at `http://localhost:5173`
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Available Scripts
 
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
-```
+- `npm run dev`: Start the development server
+- `npm run build`: Build the application for production
+- `npm run preview`: Preview the production build
+- `npm run lint`: Run ESLint for code quality checks
+- `npm run setup-db`: Initialize the Neo4j database
+- `npm run init`: Install dependencies and set up the database
+
+## Project Structure
+
+- `src/`
+  - `components/`: Reusable UI components
+  - `pages/`: Main application pages
+  - `services/`: Backend service integrations
+  - `utils/`: Utility functions
+  - `hooks/`: Custom React hooks
+  - `context/`: React context providers
+  - `types/`: TypeScript type definitions
+  - `assets/`: Static assets
+  - `config/`: Configuration files
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
