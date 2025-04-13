@@ -13,20 +13,32 @@ interface Neo4jGenreNode extends Node {
     };
 }
 
+interface Neo4jConfig {
+    uri: string;
+    user: string;
+    password: string;
+}
+
 class Neo4jService {
-    private driver: Driver;
+    private driver: Driver | null = null;
 
     constructor() {
-        const { uri, user, password } = config.neo4j;
-        const cleanUri = uri.startsWith('bolt://') ? uri : `bolt://${uri}`;
+        // Don't initialize in constructor - wait for initialize call
+    }
+
+    initialize(config: Neo4jConfig) {
+        if (this.driver) {
+            return; // Already initialized
+        }
 
         try {
+            const cleanUri = config.uri.startsWith('bolt://') ? config.uri : `bolt://${config.uri}`;
             this.driver = neo4j.driver(
                 cleanUri,
-                neo4j.auth.basic(user, password),
+                neo4j.auth.basic(config.user, config.password),
                 {
                     maxConnectionPoolSize: 50,
-                    connectionTimeout: 5000, // 5 seconds
+                    connectionTimeout: 5000,
                 }
             );
         } catch (error) {
@@ -35,8 +47,16 @@ class Neo4jService {
         }
     }
 
+    private getDriver(): Driver {
+        if (!this.driver) {
+            // Initialize with default config if not initialized
+            this.initialize(config.neo4j);
+        }
+        return this.driver!;
+    }
+
     async getSession(): Promise<Session> {
-        return this.driver.session();
+        return this.getDriver().session();
     }
 
     private transformGenreRecord(record: Record): Genre {
@@ -111,7 +131,10 @@ class Neo4jService {
     }
 
     async close(): Promise<void> {
-        await this.driver.close();
+        if (this.driver) {
+            await this.driver.close();
+            this.driver = null;
+        }
     }
 }
 

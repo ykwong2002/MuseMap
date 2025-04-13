@@ -1,4 +1,8 @@
 import { neo4jService } from '../services/neo4jService';
+import { nodeConfig } from '../config/node-env';
+
+// Initialize neo4jService with node config
+neo4jService.initialize(nodeConfig.neo4j);
 
 async function setupMusicTheoryGraph() {
     const session = await neo4jService.getSession();
