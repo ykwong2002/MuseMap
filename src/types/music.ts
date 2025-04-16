@@ -42,6 +42,7 @@ export interface MusicalIdea {
     scale?: string;
     progression?: string[];
     complexity?: number; // 1-10
+    key?: string; // Key in format 'root_scaletype' (e.g., 'C_major')
 }
 
 export interface GeneratedMusic {

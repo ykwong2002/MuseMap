@@ -19,12 +19,25 @@ interface CompositionFormProps {
     onSubmit: (idea: MusicalIdea) => void;
 }
 
+// Define interface for key objects returned from the API
+interface KeyOption {
+    id: string;
+    name: string;
+    rootPitch: number;
+    scaleType: string;
+    notes: string[];
+    mood: string[];
+}
+
 export const CompositionForm: React.FC<CompositionFormProps> = ({ onSubmit }) => {
     const [loading, setLoading] = useState(true);
     const [genres, setGenres] = useState<string[]>([]);
     const [moods, setMoods] = useState<string[]>([]);
+    const [keys, setKeys] = useState<KeyOption[]>([]);
+    const [filteredKeys, setFilteredKeys] = useState<KeyOption[]>([]);
     const [genre, setGenre] = useState<string>('');
     const [selectedMoods, setSelectedMoods] = useState<string[]>([]);
+    const [selectedKey, setSelectedKey] = useState<string>('');
     const [tempo, setTempo] = useState<number>(120);
     const [complexity, setComplexity] = useState<number>(5);
     const [tempoRange, setTempoRange] = useState<{ min: number; max: number }>({ min: 40, max: 200 });
@@ -46,6 +59,14 @@ export const CompositionForm: React.FC<CompositionFormProps> = ({ onSubmit }) =>
                     'MATCH (s:Scale) UNWIND s.mood as mood RETURN DISTINCT mood'
                 );
                 setMoods(moodsResult.records.map(record => record.get('mood')));
+                
+                // Fetch all available keys
+                const keysResult = await session.run(
+                    'MATCH (k:Key) RETURN k ORDER BY k.rootPitch, k.scaleType'
+                );
+                const keyOptions = keysResult.records.map(record => record.get('k').properties);
+                setKeys(keyOptions);
+                setFilteredKeys(keyOptions);
 
                 await session.close();
             } catch (error) {
@@ -74,13 +95,63 @@ export const CompositionForm: React.FC<CompositionFormProps> = ({ onSubmit }) =>
         updateTempoRange();
     }, [genre]);
 
+    // Filter keys based on genre and mood selections
+    useEffect(() => {
+        const filterKeys = async () => {
+            try {
+                if (!genre && selectedMoods.length === 0) {
+                    // No filters applied, show all keys
+                    setFilteredKeys(keys);
+                    return;
+                }
+
+                // Start with all keys
+                let filtered = [...keys];
+
+                // Filter by genre if selected
+                if (genre) {
+                    const genreKeysResponse = await fetch(`/api/keys-by-genre?genre=${encodeURIComponent(genre.toLowerCase())}`);
+                    if (genreKeysResponse.ok) {
+                        const genreKeys = await genreKeysResponse.json();
+                        const genreKeyIds = genreKeys.map((k: KeyOption) => k.id);
+                        filtered = filtered.filter(k => genreKeyIds.includes(k.id));
+                    }
+                }
+
+                // Filter by mood if any selected
+                if (selectedMoods.length > 0) {
+                    const moodKeysResponse = await fetch(
+                        `/api/keys-by-mood?${selectedMoods.map(m => `mood=${encodeURIComponent(m)}`).join('&')}`
+                    );
+                    if (moodKeysResponse.ok) {
+                        const moodKeys = await moodKeysResponse.json();
+                        const moodKeyIds = moodKeys.map((k: KeyOption) => k.id);
+                        filtered = filtered.filter(k => moodKeyIds.includes(k.id));
+                    }
+                }
+
+                setFilteredKeys(filtered);
+                
+                // If the previously selected key is no longer in the filtered set, clear it
+                if (selectedKey && !filtered.some(k => k.id === selectedKey)) {
+                    setSelectedKey('');
+                }
+            } catch (error) {
+                console.error('Error filtering keys:', error);
+            }
+        };
+
+        filterKeys();
+    }, [genre, selectedMoods, keys]);
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         onSubmit({
             genre,
             mood: selectedMoods,
             tempo,
-            complexity
+            complexity,
+            key: selectedKey
         });
     };
 
@@ -129,6 +200,24 @@ export const CompositionForm: React.FC<CompositionFormProps> = ({ onSubmit }) =>
                     ))}
                 </Paper>
             </Box>
+
+            <FormControl fullWidth sx={{ mb: 3 }}>
+                <InputLabel>Key</InputLabel>
+                <Select
+                    value={selectedKey}
+                    label="Key"
+                    onChange={(e) => setSelectedKey(e.target.value)}
+                >
+                    <MenuItem value="">
+                        <em>Let the algorithm choose</em>
+                    </MenuItem>
+                    {filteredKeys.map(key => (
+                        <MenuItem key={key.id} value={key.id}>
+                            {key.name}
+                        </MenuItem>
+                    ))}
+                </Select>
+            </FormControl>
 
             <Box sx={{ mb: 3 }}>
                 <Typography gutterBottom>Tempo (BPM)</Typography>
