@@ -1,5 +1,5 @@
 # MuseMap: Music Composition Assistant with Knowledge Graphs
-
+https://musemap.netlify.app/
 MuseMap is a music composition assistant that uses a Neo4j knowledge graph to help composers create music based on music theory principles. The application allows users to specify a genre, mood, and complexity level to generate MIDI compositions.
 
 ## Current Capabilities
