@@ -1,122 +1,107 @@
-# MuseMap: Music Composition Assistant with Knowledge Graphs
-https://musemap.netlify.app/
-MuseMap is a music composition assistant that uses a Neo4j knowledge graph to help composers create music based on music theory principles. The application allows users to specify a genre, mood, and complexity level to generate MIDI compositions.
+# MuseMap 🎵 AI Music Generation
 
-## Current Capabilities
+MuseMap is a web application that leverages artificial intelligence to generate original music based on user-specified parameters. With an intuitive interface, users can create custom musical compositions by selecting key, instruments, mood, genre, and more.
 
-- **Music Generation**: Creates melodies based on specified genre, mood, and complexity
-- **Knowledge Graph**: Stores music theory relationships in Neo4j (scales, chords, progressions, genres)
-- **MIDI Playback**: Built-in player for listening to generated compositions
-- **Parameter Customization**: Select genre, mood, and complexity levels
+## 🚀 Features
 
-## Tech Stack
+- **AI-Powered Music Generation**: Create original music compositions using advanced AI models
+- **Customizable Parameters**: Select key, instruments, mood, genre, tempo, and duration
+- **Real-time Preview**: Listen to generated music directly in the browser
+- **Music Library**: Save and organize your AI-generated compositions
+- **Download & Share**: Export your creations for use in other projects
 
-- **Frontend**:
-  - React with TypeScript
-  - Material-UI for components
-  - Tone.js for audio synthesis
-  - @tonejs/midi for MIDI file manipulation
+## 🔧 Tech Stack
 
-- **Backend**:
-  - Express.js server
-  - Neo4j database for knowledge graph
-  - Custom algorithmic composition engine
+### Frontend
+- React with TypeScript
+- Chakra UI & Tailwind CSS for styling
+- Framer Motion for animations
+- Tone.js for audio playback
 
-## Getting Started
+### Backend
+- Node.js with Express for API routing
+- Python with FastAPI for AI model service
+- Firebase for data storage (future implementation)
 
-### Prerequisites
-- Node.js (v16+)
-- Neo4j Database (local or cloud instance)
+## 📋 Prerequisites
 
-### Installation
+- Node.js (v16 or later)
+- Python 3.8+ (for AI service)
+- npm or yarn
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/musemap.git
-   cd musemap
-   ```
+## 🛠️ Installation
 
-2. Install dependencies:
-   ```bash
-   npm install
-   cd server
-   npm install
-   cd ..
-   ```
+### Clone the repository
+```bash
+git clone https://github.com/yourusername/musemap.git
+cd musemap
+```
 
-3. Configure environment variables:
-   Create `.env` files in both the root and server directories with the following variables:
-   ```
-   # Root .env
-   VITE_API_BASE_URL=http://localhost:3001
-   
-   # Server .env
-   NEO4J_URI=bolt://localhost:7687
-   NEO4J_USER=neo4j
-   NEO4J_PASSWORD=your_password
-   PORT=3001
-   ```
+### Install dependencies
 
-4. Initialize the Neo4j database:
-   Start your Neo4j instance, then run:
-   ```bash
-   # Run the server
-   cd server
-   npm run dev
-   
-   # In another terminal, initialize the database
-   curl -X POST http://localhost:3001/api/setup-db
-   ```
+```bash
+# Install frontend dependencies
+npm install
 
-5. Start both the server and frontend:
-   ```bash
-   npm run dev:all
-   ```
+# Install backend dependencies
+cd backend
+npm install
 
-## Usage
+# Install Python dependencies (optional for demo)
+pip install -r requirements.txt
+```
 
-1. Navigate to the application in your browser (default: http://localhost:5173)
-2. Select a musical genre (Jazz, Rock, Blues, or Classical)
-3. Choose mood options (Happy, Sad, Soulful, etc.)
-4. Set the complexity level (1-10)
-5. Click "Generate Music" to create a new composition
-6. Use the built-in MIDI player to listen to your composition
+## 🚀 Running the Application
 
-## Music Generation Process
+### Development mode
 
-The current version uses a deterministic algorithm that:
-1. Selects appropriate scales based on the requested mood
-2. Uses genre characteristics to determine note density, velocity, and rhythm
-3. Applies a simple harmonic progression (I-IV-V pattern)
-4. Adjusts complexity by varying note count and rhythmic patterns
-5. Generates MIDI data that can be played in the browser
+```bash
+# Start frontend and backend concurrently
+npm run dev:all
 
-## Knowledge Graph Structure
+# Or start them separately
+npm run dev        # Frontend
+npm run server     # Backend
+```
 
-MuseMap's knowledge graph contains:
+### Production build
 
-- **Scales**: Major, minor, pentatonic, blues with mood associations
-- **Chords**: Major, minor, seventh with functional relationships
-- **Progressions**: Common chord sequences with genre associations
-- **Genres**: Musical styles with typical tempo ranges and rhythms
+```bash
+npm run build
+cd backend
+npm start
+```
 
-## Future Development
+## 🔍 API Endpoints
 
-- Add AI-powered generation capabilities
-- Expand the music theory knowledge graph
-- Support for more complex musical structures
-- Add harmonic analysis features
-- Support exporting to different file formats
+- `GET /api/creations`: Get all saved music creations
+- `GET /api/creations/:id`: Get a specific music creation
+- `POST /api/generate`: Generate a new music composition
+- `DELETE /api/creations/:id`: Delete a saved creation
 
-## Contributing
+## 🎵 How Music Generation Works
+
+1. **Parameter Selection**: User selects musical parameters (key, mood, instruments, etc.)
+2. **AI Processing**: Parameters are sent to the AI model
+3. **Generation**: The AI model creates original music based on the parameters
+4. **Delivery**: The generated audio is returned and played in the browser
+
+## 🔜 Future Enhancements
+
+- Fine-tuned AI models for different musical styles
+- Advanced editing capabilities for generated music
+- Collaborative features for multiple users
+- Mobile application
+
+## 🤝 Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
-## License
+## 📄 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## Acknowledgments
+## 👥 Credits
 
-- Special thanks to music theory educators and resources that informed our knowledge graph
-- The Neo4j community for their excellent tools and documentation
+- Music generation powered by [MusicGen](https://github.com/facebookresearch/audiocraft) / [Magenta](https://github.com/magenta/magenta)
+- Audio processing with [Tone.js](https://tonejs.github.io/) 
