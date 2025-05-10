@@ -1,3 +1,58 @@
+# MuseMap Frontend
+
+This is the frontend application for MuseMap, an AI-powered music generation platform.
+
+## Environment Setup
+
+To set up the application correctly, you need to create a `.env` file in the frontend directory with the following Firebase configuration variables:
+
+```
+# Firebase Configuration
+VITE_FIREBASE_API_KEY=your_api_key_here
+VITE_FIREBASE_AUTH_DOMAIN=your_auth_domain_here
+VITE_FIREBASE_PROJECT_ID=your_project_id_here
+VITE_FIREBASE_STORAGE_BUCKET=your_storage_bucket_here
+VITE_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id_here
+VITE_FIREBASE_APP_ID=your_app_id_here
+VITE_FIREBASE_MEASUREMENT_ID=your_measurement_id_here
+```
+
+**IMPORTANT: Never commit your `.env` file to version control. It contains sensitive API keys and credentials.**
+
+## Installation
+
+1. Install dependencies:
+   ```
+   npm install
+   ```
+
+2. Start the development server:
+   ```
+   npm run dev
+   ```
+
+## Available Scripts
+
+- `npm run dev` - Start the development server
+- `npm run build` - Build the production application
+- `npm run lint` - Run the linter
+- `npm run preview` - Preview the production build locally
+
+## Features
+
+- AI-powered music generation
+- User authentication with Firebase
+- Customizable music parameters (mood, genre, instruments, etc.)
+- Discover music created by other users
+
+## Pages
+
+- **Home** - Landing page with features and information
+- **About** - Information about MuseMap
+- **Discover** - Browse music created by other users
+- **Generator** - Create your own music using AI
+- **Login/Signup** - Authentication pages
+
 # React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
