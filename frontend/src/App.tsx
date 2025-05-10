@@ -13,6 +13,7 @@ import Discover from './pages/Discover';
 import Generator from './pages/Generator';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import Profile from './pages/Profile';
 
 // Styles
 import './App.css';
@@ -36,18 +37,23 @@ function App() {
     <Router>
       <div className="app">
         <Navbar />
-        <main className="content">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/discover" element={<Discover />} />
-            <Route path="/generator" element={<Generator />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-          </Routes>
-        </main>
+        <div className="full-width-wrapper">
+          <main className="content">
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/discover" element={<Discover />} />
+              <Route path="/generator" element={<Generator />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route path="/profile" element={<Profile />} />
+            </Routes>
+          </main>
+        </div>
         <footer className="footer">
-          <p>&copy; {new Date().getFullYear()} MuseMap. All rights reserved.</p>
+          <div className="footer-content">
+            <p>&copy; {new Date().getFullYear()} MuseMap. All rights reserved.</p>
+          </div>
         </footer>
       </div>
     </Router>
