@@ -1,107 +1,43 @@
-# MuseMap 🎵 AI Music Generation
+# MusicGen Script
 
-MuseMap is a web application that leverages artificial intelligence to generate original music based on user-specified parameters. With an intuitive interface, users can create custom musical compositions by selecting key, instruments, mood, genre, and more.
+This script uses Meta's MusicGen model via HuggingFace to generate music based on text prompts.
 
-## 🚀 Features
+## Setup
 
-- **AI-Powered Music Generation**: Create original music compositions using advanced AI models
-- **Customizable Parameters**: Select key, instruments, mood, genre, tempo, and duration
-- **Real-time Preview**: Listen to generated music directly in the browser
-- **Music Library**: Save and organize your AI-generated compositions
-- **Download & Share**: Export your creations for use in other projects
-
-## 🔧 Tech Stack
-
-### Frontend
-- React with TypeScript
-- Chakra UI & Tailwind CSS for styling
-- Framer Motion for animations
-- Tone.js for audio playback
-
-### Backend
-- Node.js with Express for API routing
-- Python with FastAPI for AI model service
-- Firebase for data storage (future implementation)
-
-## 📋 Prerequisites
-
-- Node.js (v16 or later)
-- Python 3.8+ (for AI service)
-- npm or yarn
-
-## 🛠️ Installation
-
-### Clone the repository
-```bash
-git clone https://github.com/yourusername/musemap.git
-cd musemap
-```
-
-### Install dependencies
+1. Install the required dependencies:
 
 ```bash
-# Install frontend dependencies
-npm install
-
-# Install backend dependencies
-cd backend
-npm install
-
-# Install Python dependencies (optional for demo)
 pip install -r requirements.txt
 ```
 
-## 🚀 Running the Application
+## Usage
 
-### Development mode
-
-```bash
-# Start frontend and backend concurrently
-npm run dev:all
-
-# Or start them separately
-npm run dev        # Frontend
-npm run server     # Backend
-```
-
-### Production build
+Basic usage:
 
 ```bash
-npm run build
-cd backend
-npm start
+python generate_music.py "A cheerful jazz melody with piano and saxophone"
 ```
 
-## 🔍 API Endpoints
+This will generate an 8-second audio file and save it as `output.wav` in the current directory.
 
-- `GET /api/creations`: Get all saved music creations
-- `GET /api/creations/:id`: Get a specific music creation
-- `POST /api/generate`: Generate a new music composition
-- `DELETE /api/creations/:id`: Delete a saved creation
+### Options
 
-## 🎵 How Music Generation Works
+- `--output` or `-o`: Specify the output file path (default: `output.wav`)
+- `--model` or `-m`: Specify the MusicGen model to use (default: `facebook/musicgen-small`)
+- `--duration` or `-d`: Specify the duration of the generated audio in seconds (default: 8.0)
 
-1. **Parameter Selection**: User selects musical parameters (key, mood, instruments, etc.)
-2. **AI Processing**: Parameters are sent to the AI model
-3. **Generation**: The AI model creates original music based on the parameters
-4. **Delivery**: The generated audio is returned and played in the browser
+### Example with options
 
-## 🔜 Future Enhancements
+```bash
+python generate_music.py "An electronic dance beat with synths and a heavy bass" --output my_music.wav --model facebook/musicgen-medium --duration 15.0
+```
 
-- Fine-tuned AI models for different musical styles
-- Advanced editing capabilities for generated music
-- Collaborative features for multiple users
-- Mobile application
+## Available Models
 
-## 🤝 Contributing
+- `facebook/musicgen-small`: Smaller model, faster generation
+- `facebook/musicgen-medium`: Medium-sized model, better quality
+- `facebook/musicgen-large`: Large model, best quality but slower and requires more memory
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+## Note
 
-## 📄 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 👥 Credits
-
-- Music generation powered by [MusicGen](https://github.com/facebookresearch/audiocraft) / [Magenta](https://github.com/magenta/magenta)
-- Audio processing with [Tone.js](https://tonejs.github.io/) 
+The first time you run the script, it will download the model which might take some time depending on your internet connection and the model size. 
