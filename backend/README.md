@@ -40,4 +40,21 @@ python generate_music.py "An electronic dance beat with synths and a heavy bass"
 
 ## Note
 
-The first time you run the script, it will download the model which might take some time depending on your internet connection and the model size. 
+The first time you run the script, it will download the model which might take some time depending on your internet connection and the model size.
+
+## API Usage
+
+To run the API server (for frontend integration):
+
+```bash
+uvicorn music_api:app --reload --host 0.0.0.0 --port 8000
+```
+
+POST to `/generate` with form fields:
+- `mood`: string
+- `genre`: string
+- `instruments`: comma-separated string
+- `tempo`: string
+- `duration`: float (seconds, optional)
+
+Returns: WAV audio file. 
